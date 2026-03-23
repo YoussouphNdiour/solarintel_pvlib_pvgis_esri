@@ -34,14 +34,21 @@ function ArcGISMapInner({
     void (async () => {
       try {
         const [
+          { default: esriConfig },
           { default: Map },
           { default: MapView },
           { default: Search },
         ] = await Promise.all([
+          import('@arcgis/core/config'),
           import('@arcgis/core/Map'),
           import('@arcgis/core/views/MapView'),
           import('@arcgis/core/widgets/Search'),
         ])
+
+        const arcgisKey = import.meta.env['VITE_ARCGIS_API_KEY'] as string | undefined
+        if (arcgisKey) {
+          esriConfig.apiKey = arcgisKey
+        }
 
         if (cancelled) return
 

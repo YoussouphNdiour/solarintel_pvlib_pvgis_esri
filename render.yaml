@@ -58,6 +58,8 @@ services:
     envVars:
       - key: VITE_API_BASE_URL
         value: "https://solarintel-backend.onrender.com"
+      - key: VITE_ARCGIS_API_KEY
+        sync: false
     headers:
       - path: /*
         name: X-Frame-Options
