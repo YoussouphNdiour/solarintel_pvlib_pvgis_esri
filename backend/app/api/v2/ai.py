@@ -55,7 +55,6 @@ _AI_SESSION_PREFIX = "ai:session:"
 async def _analysis_event_generator(
     simulation: Simulation,
     project: Project,
-    db: AsyncSession,
 ) -> AsyncGenerator[dict[str, Any], None]:
     """Async generator yielding SSE-compatible dicts for the analysis pipeline.
 
@@ -63,10 +62,13 @@ async def _analysis_event_generator(
     a 'complete' event with the full AnalysisResult, and 'error' events for
     non-fatal failures.
 
+    Does NOT accept a db session — it creates its own short-lived session for
+    the equipment upsert to avoid leaking the request-scoped connection when
+    clients disconnect mid-stream.
+
     Args:
         simulation: The ORM Simulation instance to analyse.
         project: The owning Project (provides lat/lon and metadata).
-        db: Async database session for persisting equipment records.
 
     Yields:
         Dicts with ``event`` and ``data`` keys compatible with
@@ -160,10 +162,15 @@ async def _analysis_event_generator(
         state=final_state,
     )
 
-    # Persist equipment recommendation to DB
+    # Persist equipment recommendation to DB using an independent session so
+    # that the request-scoped session (already committed/closed by FastAPI's
+    # dependency cleanup) is not reused here, preventing connection leaks.
     equipment_data = final_state.get("equipment_recommendation") or {}
     if equipment_data:
-        await _upsert_equipment(simulation, project, equipment_data, db)
+        from app.db.session import AsyncSessionLocal  # noqa: PLC0415
+        async with AsyncSessionLocal() as _db:
+            await _upsert_equipment(simulation, project, equipment_data, _db)
+            await _db.commit()
 
     # Cache the result in Redis (TTL = SESSION_TTL = 24 h)
     session_id = str(_uuid.uuid4())
@@ -252,7 +259,7 @@ async def _upsert_equipment(
 async def analyze_simulation(
     body: AnalyzeRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
+    db: AsyncSession = Depends(get_async_db),  # used only for ownership checks
 ) -> EventSourceResponse:
     """Run all AI agents on the given simulation and stream results as SSE.
 
@@ -302,7 +309,7 @@ async def analyze_simulation(
         )
 
     return EventSourceResponse(
-        _analysis_event_generator(simulation, project, db),
+        _analysis_event_generator(simulation, project),
         media_type="text/event-stream",
     )
 
