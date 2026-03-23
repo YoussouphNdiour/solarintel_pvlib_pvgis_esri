@@ -10,9 +10,10 @@ Google OAuth2 flow:
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.responses import RedirectResponse
 from httpx import AsyncClient
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -280,6 +281,46 @@ async def google_auth_callback(
         access_token=create_access_token(user.id, user.role),
         refresh_token=create_refresh_token(user.id),
     )
+
+
+# ── Bootstrap: promote first admin ───────────────────────────────────────────
+
+
+@router.post(
+    "/make-admin",
+    response_model=dict[str, str],
+    summary="Promote a user to admin role (requires SECRET_KEY header)",
+)
+async def make_admin(
+    email: str,
+    x_secret_key: str = Header(..., alias="X-Secret-Key"),
+    db: AsyncSession = Depends(get_async_db),
+) -> dict[str, str]:
+    """Bootstrap endpoint: promote a user to admin.
+
+    Protected by the server's SECRET_KEY — only the server operator
+    can call this. Use once to create the first admin, then ignore.
+
+    Headers:
+        X-Secret-Key: must match the SECRET_KEY environment variable.
+
+    Query params:
+        email: The email address of the user to promote.
+    """
+    settings = get_settings()
+    if x_secret_key != settings.secret_key:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden.")
+
+    result = await db.execute(select(User).where(User.email == email))
+    user: User | None = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail=f"User '{email}' not found.")
+
+    await db.execute(
+        update(User).where(User.email == email).values(role="admin")
+    )
+    await db.commit()
+    return {"detail": f"{email} is now admin."}
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
