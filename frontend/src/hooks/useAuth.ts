@@ -38,7 +38,7 @@ export function useLogin() {
       tokenStorage.setRefreshToken(tokenData.refreshToken)
       // Fetch user profile (interceptor now has the token)
       const { data: user } = await apiClient.get<UserResponse>('/auth/me')
-      setTokens(accessToken, refreshToken, user)
+      setTokens(tokenData.accessToken, tokenData.refreshToken, user)
       void queryClient.invalidateQueries({ queryKey: authKeys.me() })
       toast.success('Connexion réussie')
       navigate('/dashboard', { replace: true })
