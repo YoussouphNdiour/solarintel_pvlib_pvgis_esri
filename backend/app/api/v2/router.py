@@ -9,6 +9,7 @@ from fastapi import APIRouter
 from app.api.v2.ai import router as ai_router
 from app.api.v2.auth import router as auth_router
 from app.api.v2.monitoring import router as monitoring_router
+from app.api.v2.projects import router as projects_router
 from app.api.v2.reports import router as reports_router
 from app.api.v2.simulate import router as simulate_router
 from app.api.v2.webhooks import router as webhooks_router
@@ -20,6 +21,9 @@ api_v2_router = APIRouter(prefix="/api/v2")
 
 # ── AUTH-001 ─────────────────────────────────────────────────────────────────
 api_v2_router.include_router(auth_router, prefix="/auth")
+
+# ── PROJ-001 ──────────────────────────────────────────────────────────────────
+api_v2_router.include_router(projects_router)
 
 # ── SIM-001 ───────────────────────────────────────────────────────────────────
 api_v2_router.include_router(simulate_router)
