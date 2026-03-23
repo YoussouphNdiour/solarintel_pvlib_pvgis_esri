@@ -17,7 +17,7 @@ import logging
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse, HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -203,11 +203,42 @@ async def list_reports_by_simulation(
 )
 async def get_report_status(
     report_id: UUID,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_db),
 ) -> ReportStatusResponse:
-    """Return the current generation status of a Report."""
+    """Return the current generation status of a Report.
+
+    If the report was previously marked as ready but the PDF file has since
+    been deleted (e.g. Render free-tier restart wiped /tmp), this endpoint
+    automatically resets the status to 'pending' and re-triggers background
+    generation so the frontend polling loop recovers without user intervention.
+    """
     report = await _get_user_report(report_id, current_user, db)
+
+    # ── Auto-recovery: file lost after server restart ─────────────────────────
+    if report.status == "ready" and report.pdf_path:
+        if not Path(report.pdf_path).exists():
+            logger.warning(
+                "Report %s marked ready but PDF missing at %s — resetting to pending",
+                report.id,
+                report.pdf_path,
+            )
+            report.status = "pending"
+            report.pdf_path = None
+            report.html_path = None
+            report.generated_at = None
+            await db.commit()
+
+            background_tasks.add_task(
+                _run_report_in_background,
+                report_id=report.id,
+                simulation_id=report.simulation_id,
+                dashboard_base_url="https://solarintel.app",
+                client_name=None,
+                installer_name=None,
+            )
+
     return ReportStatusResponse.model_validate(report)
 
 
@@ -236,7 +267,7 @@ async def download_report_pdf(
     if not pdf_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Le fichier PDF est introuvable sur le serveur.",
+            detail="report_file_missing",
         )
 
     return FileResponse(

@@ -43,7 +43,7 @@ export default function ReportGeneratorCard({
 
   const createReport   = useCreateReport()
   const reportStatus   = useReportStatus(reportId)
-  const downloadPdf    = useDownloadReport()
+  const downloadPdf    = useDownloadReport(reportId)
   const downloadHtml   = useDownloadHtmlReport()
 
   const status = reportStatus.data?.status ?? null

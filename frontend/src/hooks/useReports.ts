@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import type { AxiosError } from 'axios'
 import { apiClient } from '@/api/client'
 import type {
   ReportCreateResponse,
@@ -91,17 +92,19 @@ export function useReportsBySimulation(simulationId: string) {
 
 // ── useDownloadReport (PDF blob download) ─────────────────────────────────────
 
-export function useDownloadReport() {
+export function useDownloadReport(reportId: string | null) {
+  const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: async ({
-      reportId,
+      reportId: id,
       filename,
     }: {
       reportId: string
       filename: string
     }) => {
       const response = await apiClient.get<Blob>(
-        `/reports/${reportId}/download`,
+        `/reports/${id}/download`,
         { responseType: 'blob' },
       )
       const url = URL.createObjectURL(response.data)
@@ -114,8 +117,25 @@ export function useDownloadReport() {
     onSuccess: () => {
       toast.success('Rapport PDF téléchargé ✓')
     },
-    onError: () => {
-      toast.error('Erreur lors du téléchargement du rapport PDF')
+    onError: (error: unknown) => {
+      // If file was lost after a server restart, the status endpoint will
+      // auto-reset to pending and re-trigger generation. Invalidate the
+      // status cache so the polling loop immediately picks up the change.
+      const axiosErr = error as AxiosError<Blob>
+      // When responseType='blob', error response data is a Blob — parse it.
+      let detail: string | undefined
+      try {
+        const text = await (axiosErr.response?.data as Blob | undefined)?.text()
+        if (text) detail = (JSON.parse(text) as { detail?: string }).detail
+      } catch { /* ignore parse errors */ }
+      if (detail === 'report_file_missing' && reportId !== null) {
+        void queryClient.invalidateQueries({
+          queryKey: reportKeys.status(reportId),
+        })
+        toast('Fichier expiré — régénération en cours…', { icon: '🔄' })
+      } else {
+        toast.error('Erreur lors du téléchargement du rapport PDF')
+      }
     },
   })
 }
