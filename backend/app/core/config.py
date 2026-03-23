@@ -78,9 +78,9 @@ class Settings(BaseSettings):
         ...,
         description="Anthropic API key for Claude (claude-opus-4-6).",
     )
-    arcgis_api_key: str = Field(
-        ...,
-        description="ArcGIS JS SDK API key for map location picker.",
+    arcgis_api_key: str | None = Field(
+        default=None,
+        description="ArcGIS JS SDK API key. Optional — map and satellite PDF embed disabled when absent.",
     )
     pvgis_base_url: AnyHttpUrl = Field(
         default="https://re.jrc.ec.europa.eu/api/v5_2",  # type: ignore[assignment]
