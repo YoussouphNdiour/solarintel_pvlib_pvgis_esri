@@ -52,7 +52,7 @@ export default function SimulationResults({
   const [aiAnalysisDone, setAiAnalysisDone] = useState(false)
 
   const annualSavings = simulation.senelecSavingsXof ?? 0
-  const installCost = simulation.installationCostXof
+  const installCost = simulation.installationCostXof ?? 0
   const payback = simulation.paybackYears
   const roi25 = simulation.roiPercent
 
@@ -96,7 +96,7 @@ export default function SimulationResults({
       </section>
 
       {/* SENELEC savings table */}
-      {simulation.monthlyBreakdown.length > 0 && (
+      {(simulation.monthlyBreakdown?.length ?? 0) > 0 && (
         <section aria-label="Économies SENELEC mensuelles">
           <h2 className="text-base font-semibold text-gray-700 mb-3">
             Économies SENELEC mois par mois
