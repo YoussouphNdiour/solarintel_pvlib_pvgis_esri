@@ -13,8 +13,8 @@ from __future__ import annotations
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_current_user
@@ -24,6 +24,7 @@ from app.models.simulation import Simulation
 from app.models.user import User
 from app.schemas.simulation import (
     MonthlyDataResponse,
+    SimulationPage,
     SimulationRequest,
     SimulationResponse,
 )
@@ -85,6 +86,75 @@ def _simulation_to_response(sim: Simulation) -> SimulationResponse:
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
+
+@router.get(
+    "",
+    response_model=SimulationPage,
+    summary="List simulations for a project",
+)
+async def list_simulations(
+    project_id: UUID = Query(..., description="Project UUID to list simulations for"),
+    limit: int = Query(default=20, ge=1, le=100),
+    cursor: str | None = Query(default=None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db),
+) -> SimulationPage:
+    """Return a cursor-paginated list of simulations for a project.
+
+    Only returns simulations whose project belongs to the authenticated user.
+    """
+    # Verify project ownership
+    proj_result = await db.execute(
+        select(Project).where(
+            Project.id == project_id,
+            Project.user_id == current_user.id,
+        )
+    )
+    if proj_result.scalar_one_or_none() is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
+
+    # Total count
+    count_result = await db.execute(
+        select(func.count()).select_from(Simulation).where(Simulation.project_id == project_id)
+    )
+    total: int = count_result.scalar_one()
+
+    query = (
+        select(Simulation)
+        .where(Simulation.project_id == project_id)
+        .order_by(Simulation.created_at.desc())
+        .limit(limit + 1)
+    )
+    if cursor is not None:
+        try:
+            from datetime import datetime
+            ts_str, id_str = cursor.split("|", 1)
+            ts = datetime.fromisoformat(ts_str)
+            uid = UUID(id_str)
+            query = query.where(
+                (Simulation.created_at < ts)
+                | ((Simulation.created_at == ts) & (Simulation.id < uid))
+            )
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid cursor.")
+
+    result = await db.execute(query)
+    rows = list(result.scalars().all())
+
+    has_more = len(rows) > limit
+    items = rows[:limit]
+
+    next_cursor: str | None = None
+    if has_more and items:
+        last = items[-1]
+        next_cursor = f"{last.created_at.isoformat()}|{last.id}"
+
+    return SimulationPage(
+        items=[_simulation_to_response(s) for s in items],
+        next_cursor=next_cursor,
+        total=total,
+    )
 
 
 @router.post(

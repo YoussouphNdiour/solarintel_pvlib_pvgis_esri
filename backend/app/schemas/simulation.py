@@ -174,3 +174,11 @@ class SimulationResponse(BaseModel):
         base = cls.model_validate(sim)
         object.__setattr__(base, "monthlyData", monthly_data)
         return base
+
+
+class SimulationPage(BaseModel):
+    """Cursor-paginated list of simulations."""
+
+    items: list[SimulationResponse]
+    next_cursor: str | None
+    total: int
