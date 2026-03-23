@@ -8,6 +8,7 @@ from fastapi import APIRouter
 
 from app.api.v2.ai import router as ai_router
 from app.api.v2.auth import router as auth_router
+from app.api.v2.equipment import router as equipment_router
 from app.api.v2.monitoring import router as monitoring_router
 from app.api.v2.projects import router as projects_router
 from app.api.v2.reports import router as reports_router
@@ -39,3 +40,6 @@ api_v2_router.include_router(webhooks_router)
 
 # ── MON-001 ───────────────────────────────────────────────────────────────────
 api_v2_router.include_router(monitoring_router)
+
+# ── EQUIP ─────────────────────────────────────────────────────────────────────
+api_v2_router.include_router(equipment_router)

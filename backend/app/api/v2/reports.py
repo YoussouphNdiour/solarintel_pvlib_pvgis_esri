@@ -171,6 +171,31 @@ async def _run_report_in_background(
 
 
 @router.get(
+    "",
+    response_model=list[ReportStatusResponse],
+    summary="List reports for a simulation",
+)
+async def list_reports_by_simulation(
+    simulation_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_db),
+) -> list[ReportStatusResponse]:
+    """Return all reports for a simulation owned by the current user."""
+    result = await db.execute(
+        select(Report)
+        .join(Simulation, Report.simulation_id == Simulation.id)
+        .join(Project, Simulation.project_id == Project.id)
+        .where(
+            Report.simulation_id == simulation_id,
+            Project.user_id == current_user.id,
+        )
+        .order_by(Report.created_at.desc())
+    )
+    reports = list(result.scalars().all())
+    return [ReportStatusResponse.model_validate(r) for r in reports]
+
+
+@router.get(
     "/{report_id}",
     response_model=ReportStatusResponse,
     status_code=status.HTTP_200_OK,
