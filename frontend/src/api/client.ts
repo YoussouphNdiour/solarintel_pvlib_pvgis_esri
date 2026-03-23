@@ -19,15 +19,36 @@ import axios, {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: "bearer";
+  accessToken: string;
+  refreshToken: string;
+  tokenType: "bearer";
 }
 
 interface ApiError {
   detail: string;
   type?: string;
   status?: number;
+}
+
+// ── Snake_case → camelCase transformer (backend uses snake_case) ──────────────
+
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase())
+}
+
+function transformKeys(obj: unknown): unknown {
+  if (Array.isArray(obj)) {
+    return obj.map(transformKeys)
+  }
+  if (obj !== null && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj as Record<string, unknown>).map(([key, value]) => [
+        snakeToCamel(key),
+        transformKeys(value),
+      ])
+    )
+  }
+  return obj
 }
 
 // ── Token storage helpers (replace with httpOnly cookie in production) ────────
@@ -72,6 +93,16 @@ apiClient.interceptors.request.use(
   },
   (error: unknown) => Promise.reject(error),
 );
+
+// ── Response interceptor: transform snake_case keys → camelCase ──────────────
+
+apiClient.interceptors.response.use(
+  (response) => {
+    response.data = transformKeys(response.data)
+    return response
+  },
+  (error: unknown) => Promise.reject(error),
+)
 
 // ── Response interceptor: handle 401 with refresh ────────────────────────────
 
@@ -132,14 +163,14 @@ apiClient.interceptors.response.use(
           { refresh_token: refreshToken },
         );
 
-        tokenStorage.setAccessToken(data.access_token);
-        tokenStorage.setRefreshToken(data.refresh_token);
+        tokenStorage.setAccessToken(data.accessToken);
+        tokenStorage.setRefreshToken(data.refreshToken);
 
-        processQueue(null, data.access_token);
+        processQueue(null, data.accessToken);
 
         if (originalRequest.headers !== undefined) {
           originalRequest.headers["Authorization"] =
-            `Bearer ${data.access_token}`;
+            `Bearer ${data.accessToken}`;
         }
 
         return apiClient(originalRequest);

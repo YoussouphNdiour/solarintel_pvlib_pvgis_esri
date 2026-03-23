@@ -44,8 +44,8 @@ function IconLogout() {
 
 // ── Avatar initials ───────────────────────────────────────────────────────────
 
-function getInitials(name: string | null, email: string): string {
-  if (name !== null && name.trim().length > 0) {
+function getInitials(name: string | null | undefined, email: string): string {
+  if (name != null && name.trim().length > 0) {
     const parts = name.trim().split(' ')
     const first = parts[0]?.[0] ?? ''
     const last = parts[1]?.[0] ?? ''

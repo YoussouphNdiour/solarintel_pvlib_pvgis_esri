@@ -33,12 +33,9 @@ export function useLogin() {
       return data
     },
     onSuccess: async (tokenData) => {
-      // Backend returns snake_case: access_token / refresh_token
-      const accessToken = (tokenData as any).access_token ?? tokenData.accessToken
-      const refreshToken = (tokenData as any).refresh_token ?? tokenData.refreshToken
-      // Save to the key the axios interceptor reads from
-      tokenStorage.setAccessToken(accessToken)
-      tokenStorage.setRefreshToken(refreshToken)
+      // Interceptor transforms snake_case → camelCase; keys are now camelCase
+      tokenStorage.setAccessToken(tokenData.accessToken)
+      tokenStorage.setRefreshToken(tokenData.refreshToken)
       // Fetch user profile (interceptor now has the token)
       const { data: user } = await apiClient.get<UserResponse>('/auth/me')
       setTokens(accessToken, refreshToken, user)
