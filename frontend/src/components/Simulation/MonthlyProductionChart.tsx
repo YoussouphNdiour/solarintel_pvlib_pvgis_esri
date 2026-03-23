@@ -1,5 +1,7 @@
 import {
   Chart as ChartJS,
+  BarController,
+  LineController,
   CategoryScale,
   LinearScale,
   BarElement,
@@ -17,6 +19,8 @@ import type { MonthlyData } from '@/types/api'
 // ── Register Chart.js components ─────────────────────────────────────────────
 
 ChartJS.register(
+  BarController,
+  LineController,
   CategoryScale,
   LinearScale,
   BarElement,

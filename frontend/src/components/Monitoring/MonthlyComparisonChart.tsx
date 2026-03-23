@@ -3,6 +3,8 @@
 
 import {
   Chart as ChartJS,
+  BarController,
+  LineController,
   CategoryScale,
   LinearScale,
   BarElement,
@@ -18,6 +20,8 @@ import { MONTHS_FR } from '@/utils/format'
 import type { MonthlyComparison } from '@/types/api'
 
 ChartJS.register(
+  BarController,
+  LineController,
   CategoryScale,
   LinearScale,
   BarElement,
