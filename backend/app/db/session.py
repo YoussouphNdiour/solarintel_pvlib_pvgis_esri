@@ -23,6 +23,14 @@ from app.core.config import get_settings
 def _build_engine() -> AsyncEngine:
     """Construct the async SQLAlchemy engine from application settings.
 
+    ``pool_pre_ping=True`` issues a lightweight ``SELECT 1`` before reusing
+    any pooled connection, which silently replaces stale connections that were
+    dropped during Render free-tier sleep periods instead of raising an error.
+
+    ``pool_recycle=300`` closes and re-opens connections that have been in the
+    pool for more than 5 minutes, preventing TCP-level timeouts from the cloud
+    network layer from accumulating into un-returnable connections.
+
     Returns:
         A configured ``AsyncEngine`` instance. The engine is not connected
         until the first query is executed.
@@ -32,6 +40,8 @@ def _build_engine() -> AsyncEngine:
         str(settings.database_url),
         pool_size=settings.database_pool_size,
         max_overflow=settings.database_max_overflow,
+        pool_pre_ping=True,   # detect stale connections before use
+        pool_recycle=300,     # recycle after 5 min to outlast cloud TCP timeouts
         echo=settings.debug,
         future=True,
     )

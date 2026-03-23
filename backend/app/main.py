@@ -68,15 +68,38 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except ImportError:
             logger.warning("Sentry SDK not installed; skipping Sentry init")
 
-    # TODO(INFRA-001): Initialise SQLAlchemy async engine and verify connection
-    # TODO(INFRA-001): Initialise Redis connection pool
+    # ── Database warm-up ──────────────────────────────────────────────────────
+    from app.db.session import async_engine
+    try:
+        async with async_engine.connect() as conn:
+            from sqlalchemy import text
+            await conn.execute(text("SELECT 1"))
+        logger.info("Database connection verified")
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Database connection failed at startup: %s", exc)
+
+    # ── Redis warm-up ─────────────────────────────────────────────────────────
+    if settings.redis_url:
+        from app.db.redis import redis_client
+        try:
+            await redis_client.get_client().ping()
+            logger.info("Redis connection verified")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Redis unavailable at startup (degraded mode): %s", exc)
+    else:
+        logger.info("Redis URL not configured — running without cache")
 
     yield
 
     # ── Shutdown ──────────────────────────────────────────────────────────────
     logger.info("Shutting down %s", settings.app_name)
-    # TODO(INFRA-001): Dispose SQLAlchemy engine
-    # TODO(INFRA-001): Close Redis connection pool
+    from app.db.session import dispose_engine
+    await dispose_engine()
+    logger.info("Database engine disposed")
+    if settings.redis_url:
+        from app.db.redis import redis_client
+        await redis_client.close()
+        logger.info("Redis connection closed")
 
 
 def create_application() -> FastAPI:

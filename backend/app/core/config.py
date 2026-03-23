@@ -61,8 +61,8 @@ class Settings(BaseSettings):
         ...,
         description="PostgreSQL async DSN (postgresql+asyncpg://...).",
     )
-    database_pool_size: int = 10
-    database_max_overflow: int = 20
+    database_pool_size: int = 5   # keep low for Render free tier PostgreSQL
+    database_max_overflow: int = 5
 
     # ── Redis ────────────────────────────────────────────────────────────────
     # Optional on Render free tier — use Upstash Redis (https://upstash.com)
