@@ -36,15 +36,19 @@ function snakeToCamel(str: string): string {
   return str.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase())
 }
 
-function transformKeys(obj: unknown): unknown {
+function camelToSnake(str: string): string {
+  return str.replace(/([A-Z])/g, (letter: string) => `_${letter.toLowerCase()}`)
+}
+
+function transformKeys(obj: unknown, keyFn: (k: string) => string): unknown {
   if (Array.isArray(obj)) {
-    return obj.map(transformKeys)
+    return obj.map((item) => transformKeys(item, keyFn))
   }
   if (obj !== null && typeof obj === 'object') {
     return Object.fromEntries(
       Object.entries(obj as Record<string, unknown>).map(([key, value]) => [
-        snakeToCamel(key),
-        transformKeys(value),
+        keyFn(key),
+        transformKeys(value, keyFn),
       ])
     )
   }
@@ -81,13 +85,17 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// ── Request interceptor: inject Authorization header ──────────────────────────
+// ── Request interceptor: inject Authorization header + camelCase → snake_case ──
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
     const token = tokenStorage.getAccessToken();
     if (token !== null && config.headers !== undefined) {
       config.headers["Authorization"] = `Bearer ${token}`;
+    }
+    // Transform request body keys from camelCase to snake_case
+    if (config.data !== undefined && config.data !== null) {
+      config.data = transformKeys(config.data, camelToSnake);
     }
     return config;
   },
@@ -98,7 +106,7 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   (response) => {
-    response.data = transformKeys(response.data)
+    response.data = transformKeys(response.data, snakeToCamel)
     return response
   },
   (error: unknown) => Promise.reject(error),
