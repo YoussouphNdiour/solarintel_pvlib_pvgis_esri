@@ -55,7 +55,7 @@ export default function ReportCard({
   simulationDate,
   onRetry,
 }: ReportCardProps) {
-  const downloadPdf  = useDownloadReport()
+  const downloadPdf  = useDownloadReport(report.id)
   const downloadHtml = useDownloadHtmlReport()
 
   const isReady    = report.status === 'ready'

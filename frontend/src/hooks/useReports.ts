@@ -92,7 +92,7 @@ export function useReportsBySimulation(simulationId: string) {
 
 // ── useDownloadReport (PDF blob download) ─────────────────────────────────────
 
-export function useDownloadReport(reportId: string | null) {
+export function useDownloadReport(reportId?: string | null) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -122,20 +122,25 @@ export function useDownloadReport(reportId: string | null) {
       // auto-reset to pending and re-trigger generation. Invalidate the
       // status cache so the polling loop immediately picks up the change.
       const axiosErr = error as AxiosError<Blob>
-      // When responseType='blob', error response data is a Blob — parse it.
-      let detail: string | undefined
-      try {
-        const text = await (axiosErr.response?.data as Blob | undefined)?.text()
-        if (text) detail = (JSON.parse(text) as { detail?: string }).detail
-      } catch { /* ignore parse errors */ }
-      if (detail === 'report_file_missing' && reportId !== null) {
-        void queryClient.invalidateQueries({
-          queryKey: reportKeys.status(reportId),
-        })
-        toast('Fichier expiré — régénération en cours…', { icon: '🔄' })
-      } else {
-        toast.error('Erreur lors du téléchargement du rapport PDF')
-      }
+      // When responseType='blob', error data is a Blob — parse asynchronously.
+      void (async () => {
+        let detail: string | undefined
+        try {
+          const blob = axiosErr.response?.data
+          if (blob instanceof Blob) {
+            const text = await blob.text()
+            detail = (JSON.parse(text) as { detail?: string }).detail
+          }
+        } catch { /* ignore parse errors */ }
+        if (detail === 'report_file_missing' && reportId != null) {
+          void queryClient.invalidateQueries({
+            queryKey: reportKeys.status(reportId),
+          })
+          toast('Fichier expiré — régénération en cours…', { icon: '🔄' })
+        } else {
+          toast.error('Erreur lors du téléchargement du rapport PDF')
+        }
+      })()
     },
   })
 }
