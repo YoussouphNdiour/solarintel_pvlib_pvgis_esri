@@ -78,6 +78,7 @@ services:
     plan: free
     region: frankfurt
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []   # internal access only — backend connects via private network
 
 databases:
   # PostgreSQL — Render managed DB (Free tier: 1GB storage, 90-day expiry)
