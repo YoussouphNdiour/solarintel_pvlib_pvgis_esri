@@ -50,8 +50,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/api/v2/health || exit 1
 
 # OCI image labels
-LABEL org.opencontainers.image.source="https://github.com/${{ github.repository }}"
-LABEL org.opencontainers.image.version="${BUILD_VERSION:-0.0.0}"
+LABEL org.opencontainers.image.source="https://github.com/YoussouphNdiour/solarintel_pvlib_pvgis_esri"
+LABEL org.opencontainers.image.version="2.0.0"
 
 # Production command: uvicorn with multiple workers
 # Render injects $PORT; default to 8000 for local Docker Compose
