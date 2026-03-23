@@ -75,20 +75,20 @@ class Project(Base):
         "Simulation",
         back_populates="project",
         cascade="all, delete-orphan",
-        lazy="selectin",
+        lazy="noload",
     )
     equipment: Mapped["Equipment | None"] = relationship(
         "Equipment",
         back_populates="project",
         cascade="all, delete-orphan",
         uselist=False,
-        lazy="selectin",
+        lazy="noload",
     )
     monitoring_entries: Mapped[list["Monitoring"]] = relationship(
         "Monitoring",
         back_populates="project",
         cascade="all, delete-orphan",
-        lazy="selectin",
+        lazy="noload",
     )
 
     @classmethod

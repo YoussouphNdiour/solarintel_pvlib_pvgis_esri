@@ -78,7 +78,7 @@ class User(Base):
         "Project",
         back_populates="user",
         cascade="all, delete-orphan",
-        lazy="selectin",
+        lazy="noload",
     )
 
     def validate_role(self) -> None:

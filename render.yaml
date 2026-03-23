@@ -43,6 +43,8 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS
         value: '["https://solarintel-frontend.onrender.com"]'
+      - key: RENDER_FRONTEND_URL
+        value: "https://solarintel-frontend.onrender.com"
       - key: PDF_STORAGE_PATH
         value: "/tmp/solarintel/reports"
 
