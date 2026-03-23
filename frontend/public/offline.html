@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hors ligne — SolarIntel v2</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        background: #fffbeb;
+        color: #1f2937;
+        text-align: center;
+        padding: 1.5rem;
+      }
+      .card {
+        max-width: 400px;
+        background: #fff;
+        border-radius: 1rem;
+        padding: 2.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,.1);
+        border: 1px solid #fde68a;
+      }
+      .icon { font-size: 3.5rem; margin-bottom: 1rem; }
+      h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: .5rem; }
+      p { color: #6b7280; font-size: .875rem; line-height: 1.5; }
+      button {
+        margin-top: 1.5rem;
+        background: #f59e0b;
+        color: #fff;
+        border: none;
+        border-radius: .5rem;
+        padding: .625rem 1.25rem;
+        font-size: .875rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:hover { background: #d97706; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="icon">📡</div>
+      <h1>Vous êtes hors ligne</h1>
+      <p>
+        SolarIntel v2 nécessite une connexion Internet pour fonctionner correctement.
+        Vérifiez votre connexion et réessayez.
+      </p>
+      <button onclick="window.location.reload()">Réessayer</button>
+    </div>
+  </body>
+</html>

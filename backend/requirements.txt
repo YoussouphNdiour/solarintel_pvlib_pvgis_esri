@@ -1,0 +1,64 @@
+# SolarIntel v2 — Backend Python Dependencies
+# Pin major.minor versions; patch versions resolved by pip.
+# Run: pip install -r requirements.txt
+
+# ── Web Framework ─────────────────────────────────────────────────────────────
+fastapi==0.111.1
+uvicorn[standard]==0.30.1
+python-multipart==0.0.9        # multipart/form-data support
+
+# ── Database ──────────────────────────────────────────────────────────────────
+sqlalchemy[asyncio]==2.0.31
+asyncpg==0.29.0                # async PostgreSQL driver
+psycopg2-binary==2.9.9         # sync driver for Alembic migrations
+alembic==1.13.2
+
+# ── Cache / Queue ─────────────────────────────────────────────────────────────
+redis[hiredis]==5.0.8
+arq==0.26.1                    # async Redis task queue for PDF generation
+
+# ── Settings & Validation ─────────────────────────────────────────────────────
+pydantic==2.8.2
+pydantic-settings==2.4.0
+
+# ── Authentication ────────────────────────────────────────────────────────────
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# ── HTTP Client ───────────────────────────────────────────────────────────────
+httpx==0.27.0                  # async HTTP client for PVGIS + Claude APIs
+
+# ── PV Simulation ─────────────────────────────────────────────────────────────
+pvlib==0.11.1
+pandas==2.2.2
+numpy==2.0.1
+scipy==1.14.0
+
+# ── AI / LangGraph ───────────────────────────────────────────────────────────
+anthropic>=0.34.0              # Claude API SDK (claude-sonnet-4-6, claude-opus-4-6)
+langgraph>=0.2.0
+langchain-anthropic>=0.2.0
+langchain-core>=0.2.38
+
+# ── SSE Streaming ─────────────────────────────────────────────────────────────
+sse-starlette>=1.6.5,<2.0.0   # Server-Sent Events for AI streaming endpoints (starlette<1.0 compatible)
+
+# ── PDF Generation ────────────────────────────────────────────────────────────
+reportlab==4.2.2
+matplotlib==3.9.1              # charts embedded in PDF
+Pillow>=10.0,<12.0             # image processing for PDF and QR code rendering
+qrcode[pil]>=7.4               # QR code generator (requires Pillow image backend)
+
+# ── Observability ─────────────────────────────────────────────────────────────
+structlog==24.4.0
+python-json-logger==2.0.7
+prometheus-client>=0.20.0
+sentry-sdk[fastapi]>=2.0.0
+
+# ── Development / Testing ─────────────────────────────────────────────────────
+# (install with: pip install -r requirements-dev.txt)
+
+# ── Type Stubs ────────────────────────────────────────────────────────────────
+types-redis==4.6.0.20240425
+types-passlib==1.7.7.20240327
+types-python-jose==3.3.4.20240106

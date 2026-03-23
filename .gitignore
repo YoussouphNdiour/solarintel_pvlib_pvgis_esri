@@ -1,0 +1,70 @@
+# ── Python ─────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.python-version
+*.pyo
+
+# ── Virtual environments ─────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Node / Frontend ──────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+frontend/playwright-report/
+frontend/test-results/
+
+# ── Environment secrets ───────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# (keep docker-compose.yml and Dockerfile in version control)
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/settings.json
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── PDF output ────────────────────────────────────────────────────────────────
+/tmp/solarintel/
+*.pdf
+
+# ── Alembic ───────────────────────────────────────────────────────────────────
+# Keep alembic/ directory (migration scripts) but ignore generated cache
+alembic/__pycache__/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

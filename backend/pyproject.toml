@@ -1,0 +1,58 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+# Enable: E (pycodestyle errors), W (warnings), I (isort), N (pep8 naming),
+#          UP (pyupgrade), S (bandit/security), B (bugbear), ANN (annotations)
+select = ["E", "W", "I", "N", "UP", "S", "B", "ANN"]
+ignore = [
+    "ANN101",  # Missing type annotation for self
+    "ANN102",  # Missing type annotation for cls
+    "S101",    # Use of assert (allowed in tests)
+]
+per-file-ignores = { "tests/**/*.py" = ["S101", "ANN", "S105", "S106"] }
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+namespace_packages = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["pvlib.*", "reportlab.*", "langgraph.*", "langchain_anthropic.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--tb=short",
+    "--strict-markers",
+    "-q",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests requiring live services",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101"]  # assert_used — allowed in tests

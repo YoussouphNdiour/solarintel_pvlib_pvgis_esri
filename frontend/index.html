@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="SolarIntel v2 — Plateforme de dimensionnement PV pour l'Afrique de l'Ouest"
+    />
+    <meta name="theme-color" content="#f59e0b" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- PWA manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SolarIntel v2" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+    <!-- ArcGIS JS SDK 4.30 -->
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.30/@arcgis/core/assets/esri/themes/light/main.css"
+    />
+
+    <title>SolarIntel v2</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Register service worker in production only
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(function (reg) {
+              console.log('[SW] Registered:', reg.scope)
+            })
+            .catch(function (err) {
+              console.warn('[SW] Registration failed:', err)
+            })
+        })
+      }
+    </script>
+  </body>
+</html>
