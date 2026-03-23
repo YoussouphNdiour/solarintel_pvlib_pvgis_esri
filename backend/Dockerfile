@@ -55,4 +55,4 @@ LABEL org.opencontainers.image.version="2.0.0"
 
 # Production command: uvicorn with multiple workers
 # Render injects $PORT; default to 8000 for local Docker Compose
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --log-level info"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --log-level info"]
