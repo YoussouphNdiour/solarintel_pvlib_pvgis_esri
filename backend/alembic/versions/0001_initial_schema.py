@@ -27,7 +27,7 @@ def upgrade() -> None:
         sa.Column("hashed_password", sa.String(length=255), nullable=True),
         sa.Column(
             "role",
-            sa.Enum("admin", "commercial", "technicien", "client", name="userrole"),
+            sa.Enum("admin", "commercial", "technicien", "client", name="user_role"),
             nullable=False,
             server_default="client",
         ),
@@ -145,7 +145,7 @@ def upgrade() -> None:
         sa.Column("html_path", sa.String(length=500), nullable=True),
         sa.Column(
             "status",
-            sa.Enum("pending", "generating", "ready", "failed", name="reportstatus"),
+            sa.Enum("pending", "generating", "ready", "failed", name="report_status"),
             nullable=False,
             server_default="pending",
         ),
@@ -244,5 +244,5 @@ def downgrade() -> None:
     op.drop_table("simulations")
     op.drop_table("projects")
     op.drop_table("users")
-    op.execute("DROP TYPE IF EXISTS userrole")
-    op.execute("DROP TYPE IF EXISTS reportstatus")
+    op.execute("DROP TYPE IF EXISTS user_role")
+    op.execute("DROP TYPE IF EXISTS report_status")
