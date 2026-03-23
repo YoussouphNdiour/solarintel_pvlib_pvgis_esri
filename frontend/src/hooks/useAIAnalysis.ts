@@ -104,7 +104,7 @@ export function useAIAnalysis(): UseAIAnalysisReturn {
                 ? { Authorization: `Bearer ${token}` }
                 : {}),
             },
-            body: JSON.stringify({ simulationId }),
+            body: JSON.stringify({ simulation_id: simulationId }),
           },
         )
 
