@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { apiClient } from '@/api/client'
+import { apiClient, tokenStorage } from '@/api/client'
 import { useAuthStore } from '@/stores/authStore'
 import type {
   LoginRequest,
@@ -33,11 +33,15 @@ export function useLogin() {
       return data
     },
     onSuccess: async (tokenData) => {
-      // Fetch user profile immediately after login
-      const { data: user } = await apiClient.get<UserResponse>('/auth/me', {
-        headers: { Authorization: `Bearer ${tokenData.accessToken}` },
-      })
-      setTokens(tokenData.accessToken, tokenData.refreshToken, user)
+      // Backend returns snake_case: access_token / refresh_token
+      const accessToken = (tokenData as any).access_token ?? tokenData.accessToken
+      const refreshToken = (tokenData as any).refresh_token ?? tokenData.refreshToken
+      // Save to the key the axios interceptor reads from
+      tokenStorage.setAccessToken(accessToken)
+      tokenStorage.setRefreshToken(refreshToken)
+      // Fetch user profile (interceptor now has the token)
+      const { data: user } = await apiClient.get<UserResponse>('/auth/me')
+      setTokens(accessToken, refreshToken, user)
       void queryClient.invalidateQueries({ queryKey: authKeys.me() })
       toast.success('Connexion réussie')
       navigate('/dashboard', { replace: true })
@@ -103,6 +107,7 @@ export function useLogout() {
   const navigate = useNavigate()
 
   return () => {
+    tokenStorage.clearAll()
     clearAuth()
     queryClient.clear()
     toast.success('Déconnecté')
