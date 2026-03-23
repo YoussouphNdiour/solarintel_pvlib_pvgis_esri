@@ -13,6 +13,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import noload
 
 from app.core.security import get_current_user
 from app.db.session import get_async_db
@@ -46,6 +47,7 @@ async def list_projects(
     # Build base query ordered by created_at DESC
     query = (
         select(Project)
+        .options(noload("*"))
         .where(Project.user_id == current_user.id)
         .order_by(Project.created_at.desc())
         .limit(limit + 1)
@@ -103,9 +105,15 @@ async def create_project(
         polygon_geojson=data.polygon_geojson,
     )
     db.add(project)
+    await db.flush()  # get server-side id/timestamps without loading relationships
+    project_id = project.id
     await db.commit()
-    await db.refresh(project)
-    return ProjectResponse.model_validate(project)
+    # Re-fetch with noload to avoid selectin relationship loading in async context
+    result = await db.execute(
+        select(Project).options(noload("*")).where(Project.id == project_id)
+    )
+    created = result.scalar_one()
+    return ProjectResponse.model_validate(created)
 
 
 @router.get("/{project_id}", response_model=ProjectResponse, summary="Get a project by ID")
@@ -114,7 +122,9 @@ async def get_project(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_async_db),
 ) -> ProjectResponse:
-    result = await db.execute(select(Project).where(Project.id == project_id))
+    result = await db.execute(
+        select(Project).options(noload("*")).where(Project.id == project_id)
+    )
     project = _owned_or_404(result.scalar_one_or_none(), current_user.id)
     return ProjectResponse.model_validate(project)
 
