@@ -23,7 +23,12 @@ class SimulationRequest(BaseModel):
 
     Attributes:
         project_id: UUID of the owning Project (must belong to current user).
-        panel_count: Number of PV panels in the array.
+        panel_count: Number of PV panels. If omitted, the backend auto-calculates
+            the minimum count required to cover ``monthly_consumption_kwh``,
+            then caps it by ``available_area_m2`` when provided.
+        available_area_m2: Usable roof/ground area in m². Used as a hard upper
+            bound on the auto-calculated panel count (ignored when
+            ``panel_count`` is supplied explicitly).
         panel_power_wc: Nameplate power of each panel in Watts.
         panel_model: Human-readable panel model label.
         tilt: Panel tilt angle in degrees from horizontal.
@@ -35,7 +40,23 @@ class SimulationRequest(BaseModel):
     """
 
     project_id: UUID
-    panel_count: int = Field(ge=1, le=10000, description="Number of PV panels")
+    panel_count: int | None = Field(
+        default=None,
+        ge=1,
+        le=10000,
+        description=(
+            "Number of PV panels. Omit to auto-calculate from energy need "
+            "and available area."
+        ),
+    )
+    available_area_m2: float | None = Field(
+        default=None,
+        ge=1.0,
+        description=(
+            "Usable installation area in m². Acts as a hard ceiling on the "
+            "auto-calculated panel count (ignored when panel_count is explicit)."
+        ),
+    )
     panel_power_wc: int = Field(
         ge=100, le=800, default=545, description="Panel nameplate power in Watts"
     )

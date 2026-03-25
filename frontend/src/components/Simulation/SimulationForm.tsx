@@ -19,7 +19,10 @@ const TARIFF_CODES = ['DPP', 'DMP', 'PPP', 'PMP', 'WOYOFAL'] as const
 // ── Zod schema ────────────────────────────────────────────────────────────────
 
 const schema = z.object({
-  panelCount: z.number({ invalid_type_error: 'Nombre requis' }).int().min(1).max(10000),
+  availableAreaM2: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : Number(v)),
+    z.number({ invalid_type_error: 'Surface en m²' }).min(1).max(100_000).optional(),
+  ),
   panelModel: z.string().min(1, 'Modèle requis'),
   panelPowerWc: z.number({ invalid_type_error: 'Puissance requise' }).int().min(100).max(1000),
   monthlyConsumptionKwh: z.number({ invalid_type_error: 'Consommation requise' }).min(1),
@@ -36,7 +39,6 @@ type FormValues = z.infer<typeof schema>
 
 interface SimulationFormProps {
   projectId: string
-  initialPanelCount?: number
   isLoading: boolean
   onSubmit: (data: Omit<SimulationRequest, 'projectId'>) => void
 }
@@ -62,7 +64,6 @@ const selectCls = `${inputCls} bg-white`
 
 export default function SimulationForm({
   projectId: _projectId,
-  initialPanelCount = 10,
   isLoading,
   onSubmit,
 }: SimulationFormProps) {
@@ -71,7 +72,7 @@ export default function SimulationForm({
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      panelCount: initialPanelCount,
+      availableAreaM2: undefined,
       panelModel: PANEL_MODELS[0].label,
       panelPowerWc: PANEL_MODELS[0].powerWc,
       monthlyConsumptionKwh: 400,
@@ -93,7 +94,8 @@ export default function SimulationForm({
 
   function handleFormSubmit(v: FormValues) {
     onSubmit({
-      panelCount: v.panelCount, panelPowerWc: v.panelPowerWc, panelModel: v.panelModel,
+      availableAreaM2: v.availableAreaM2,
+      panelPowerWc: v.panelPowerWc, panelModel: v.panelModel,
       tilt: v.tilt, azimuth: v.azimuth, systemLosses: v.systemLosses,
       monthlyConsumptionKwh: v.monthlyConsumptionKwh,
       tariffCode: v.tariffCode, installationCostXof: v.installationCostXof,
@@ -102,9 +104,21 @@ export default function SimulationForm({
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5" noValidate>
-      <Field id="panelCount" label="Nombre de panneaux" error={errors.panelCount?.message}>
-        <input id="panelCount" type="number" {...register('panelCount', { valueAsNumber: true })}
-          className={inputCls} aria-describedby={errors.panelCount ? 'panelCount-err' : undefined} />
+      <Field id="availableAreaM2" label="Surface disponible (m²)" error={errors.availableAreaM2?.message}>
+        <input
+          id="availableAreaM2"
+          type="number"
+          min={1}
+          step={0.5}
+          placeholder="Ex : 30 — laisser vide pour couvrir 100 % des besoins"
+          {...register('availableAreaM2')}
+          className={inputCls}
+          aria-describedby={errors.availableAreaM2 ? 'availableAreaM2-err' : undefined}
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          Le nombre de panneaux est calculé automatiquement pour couvrir votre consommation.
+          La surface limite le nombre maximal installable.
+        </p>
       </Field>
 
       <Field id="panelModel" label="Modèle de panneau">

@@ -88,7 +88,13 @@ export default function SimulatePage() {
 
   function handleFormSubmit(params: Omit<SimulationRequest, 'projectId'>) {
     if (projectId.length === 0) return
-    createSimulation({ ...params, projectId }, { onSuccess: () => setStep(3) })
+    // If a polygon was drawn on the map, use its area as the space constraint
+    // (overrides the form field if both are present)
+    const areaFromPolygon = drawnPolygon !== null ? polygonAreaM2(drawnPolygon) : undefined
+    createSimulation(
+      { ...params, projectId, availableAreaM2: areaFromPolygon ?? params.availableAreaM2 },
+      { onSuccess: () => setStep(3) },
+    )
   }
 
   function handleNewSimulation() {
@@ -127,8 +133,10 @@ export default function SimulatePage() {
             {drawnPolygon !== null && (
               <div className="flex items-center gap-2 bg-solar-50 border border-solar-200 rounded-lg px-4 py-3 text-sm text-solar-800">
                 <CheckCircle size={16} className="text-solar-500 shrink-0" aria-hidden="true" />
-                <span>Zone tracée — environ <strong>{estimatedPanelCount} panneaux</strong> estimés
-                  (≈ {Math.round(polygonAreaM2(drawnPolygon))} m²)</span>
+                <span>
+                  Zone tracée — ≈ <strong>{Math.round(polygonAreaM2(drawnPolygon))} m²</strong> disponibles
+                  (max ≈ <strong>{estimatedPanelCount} panneaux</strong> selon la surface)
+                </span>
               </div>
             )}
             <div className="flex justify-end pt-2">
@@ -152,7 +160,7 @@ export default function SimulatePage() {
                 Aucun projet sélectionné. Veuillez d'abord sélectionner un projet depuis le tableau de bord.
               </div>
             )}
-            <SimulationForm projectId={projectId} initialPanelCount={estimatedPanelCount}
+            <SimulationForm projectId={projectId}
               isLoading={isPending} onSubmit={handleFormSubmit} />
             <button type="button" onClick={() => setStep(1)}
               className="rounded-xl border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-5 py-2.5 text-sm transition-colors">

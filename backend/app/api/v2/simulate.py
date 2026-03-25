@@ -11,6 +11,7 @@ authenticated user: the owning project must belong to the current user.
 from __future__ import annotations
 
 import logging
+import math
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -41,6 +42,53 @@ _senelec_service = SenelecService()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _auto_panel_count(
+    monthly_consumption_kwh: float,
+    panel_power_wc: int,
+    panel_efficiency: float = 0.21,
+    system_losses: float = 0.14,
+    available_area_m2: float | None = None,
+    specific_yield_kwh_kwp: float = 1_650.0,
+) -> int:
+    """Calculate the minimum panel count to cover monthly energy consumption.
+
+    Uses a pre-simulation specific yield estimate (West Africa average) to
+    derive the required kWp, then converts to panel count.  When
+    ``available_area_m2`` is given, the result is capped so the array fits
+    within the usable roof/ground space (15 % inter-row spacing buffer).
+
+    Args:
+        monthly_consumption_kwh: Average monthly electricity consumption in kWh.
+        panel_power_wc: Nameplate power per panel in Watts.
+        panel_efficiency: Panel efficiency fraction (default 0.21 = 21 %).
+        system_losses: Total system losses fraction (default 0.14 = 14 %).
+        available_area_m2: Usable installation area in m² (optional ceiling).
+        specific_yield_kwh_kwp: Pre-estimate of annual kWh per kWp for the
+            region (1 650 kWh/kWp is typical for Senegal/West Africa).
+
+    Returns:
+        Panel count ≥ 1, bounded by the space constraint when supplied.
+    """
+    # Energy-based requirement
+    annual_consumption_kwh = monthly_consumption_kwh * 12.0
+    # Net yield after system losses
+    net_yield = specific_yield_kwh_kwp * (1.0 - system_losses)
+    required_kwp = annual_consumption_kwh / net_yield
+    panel_count_energy = math.ceil(required_kwp * 1_000.0 / panel_power_wc)
+
+    if available_area_m2 is None:
+        return max(1, panel_count_energy)
+
+    # Space-based ceiling
+    # Physical panel area (m²): W / (W·m⁻² at STC × efficiency) = W / (1000 × η)
+    panel_area_m2 = panel_power_wc / (1_000.0 * panel_efficiency)
+    # Add 15 % footprint buffer for inter-row spacing and access paths
+    panel_footprint_m2 = panel_area_m2 * 1.15
+    max_panels_space = int(available_area_m2 / panel_footprint_m2)
+
+    return max(1, min(panel_count_energy, max_panels_space))
 
 
 def _build_monthly_response(monthly_data: list | None) -> list[MonthlyDataResponse]:
@@ -204,10 +252,24 @@ async def create_simulation(
         )
 
     # ── 2. Build simulation parameters from request + project geometry ────────
+    # Resolve panel count: use explicit value if provided, otherwise auto-calculate
+    # from energy need (monthly_consumption_kwh) capped by available area.
+    if body.panel_count is not None:
+        panel_count = body.panel_count
+        auto_calculated = False
+    else:
+        panel_count = _auto_panel_count(
+            monthly_consumption_kwh=body.monthly_consumption_kwh,
+            panel_power_wc=body.panel_power_wc,
+            system_losses=body.system_losses,
+            available_area_m2=body.available_area_m2,
+        )
+        auto_calculated = True
+
     sim_params = SimulationParams(
         latitude=project.latitude,
         longitude=project.longitude,
-        panel_count=body.panel_count,
+        panel_count=panel_count,
         panel_power_wc=body.panel_power_wc,
         tilt=body.tilt,
         azimuth=body.azimuth,
@@ -216,13 +278,18 @@ async def create_simulation(
 
     # ── 3. Run PV simulation ──────────────────────────────────────────────────
     logger.info(
-        "Starting simulation for project=%s user=%s panels=%d×%dW",
+        "Starting simulation for project=%s user=%s panels=%d×%dW%s",
         project.id,
         current_user.id,
-        body.panel_count,
+        panel_count,
         body.panel_power_wc,
+        " (auto-calculated)" if auto_calculated else "",
     )
     sim_result = await _sim_service.simulate(sim_params)
+    # Enrich params with auto-calculation metadata for audit/display
+    sim_result.params_used["panel_count_auto"] = auto_calculated
+    if body.available_area_m2 is not None:
+        sim_result.params_used["available_area_m2"] = body.available_area_m2
 
     # ── 4. Senelec financial analysis ─────────────────────────────────────────
     monthly_production = [m.energy_kwh for m in sim_result.monthly_data]
@@ -246,7 +313,7 @@ async def create_simulation(
 
     simulation = Simulation.create(
         project_id=body.project_id,
-        panel_count=body.panel_count,
+        panel_count=panel_count,
         peak_kwc=sim_result.peak_kwc,
         annual_kwh=sim_result.annual_kwh,
         specific_yield=sim_result.specific_yield,

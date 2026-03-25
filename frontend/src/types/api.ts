@@ -89,7 +89,10 @@ export interface CreateProjectRequest {
 
 export interface SimulationRequest {
   projectId: string
-  panelCount: number
+  /** Omit to let the backend auto-calculate from monthlyConsumptionKwh + availableAreaM2 */
+  panelCount?: number
+  /** Usable installation area in m² — caps the auto-calculated panel count */
+  availableAreaM2?: number
   panelPowerWc: number        // default 545
   panelModel: string
   tilt: number                // degrees, default 15
